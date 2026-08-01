@@ -5,7 +5,7 @@
 // websocket), and this component drives the SAME cards through the same callbacks.
 
 import { useEffect, useRef, useState } from 'react';
-import { NoorVoiceClient, type VoiceStatus, type VoiceEvents } from '@/lib/voice/client';
+import { ThaakatVoiceClient, type VoiceStatus, type VoiceEvents } from '@/lib/voice/client';
 import type { Finding } from '@/lib/clusters';
 
 const STATUS_COPY: Record<VoiceStatus, string> = {
@@ -13,7 +13,7 @@ const STATUS_COPY: Record<VoiceStatus, string> = {
   connecting: 'Connecting…',
   listening: 'Listening',
   thinking: 'Thinking',
-  speaking: 'Noor is speaking',
+  speaking: 'Thaakat is speaking',
   error: 'Connection problem',
 };
 
@@ -38,7 +38,7 @@ export default function LiveVoice({
   patientId?: string;
   disabled?: boolean;
 }) {
-  const clientRef = useRef<NoorVoiceClient | null>(null);
+  const clientRef = useRef<ThaakatVoiceClient | null>(null);
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
@@ -54,7 +54,7 @@ export default function LiveVoice({
     setError(null);
     // Route every callback through a ref so the client keeps working across re-renders.
     const h = handlersRef.current;
-    const client = new NoorVoiceClient(
+    const client = new ThaakatVoiceClient(
       {
         onStatus: setStatus,
         onError: (m) => setError(m),
@@ -72,7 +72,7 @@ export default function LiveVoice({
     );
     clientRef.current = client;
 
-    // Put her historical chart on the timeline before the first word, so Noor's opening
+    // Put her historical chart on the timeline before the first word, so Thaakat's opening
     // question can already reference it.
     onSeed(client.tools.seedRecord());
 
@@ -101,7 +101,7 @@ export default function LiveVoice({
               height: 8,
               borderRadius: 999,
               background: STATUS_COLOR[status],
-              animation: status === 'listening' ? 'noorPulse 1.4s ease-in-out infinite' : undefined,
+              animation: status === 'listening' ? 'thaakatPulse 1.4s ease-in-out infinite' : undefined,
             }}
           />
           <span className="muted">{STATUS_COPY[status]}</span>
@@ -116,10 +116,10 @@ export default function LiveVoice({
       )}
 
       <button className="btn" onClick={live ? disconnect : connect} disabled={disabled && !live}>
-        {live ? '■ End call' : '🎙️ Talk to Noor'}
+        {live ? '■ End call' : '🎙️ Talk to Thaakat'}
       </button>
 
-      <style>{`@keyframes noorPulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }`}</style>
+      <style>{`@keyframes thaakatPulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }`}</style>
     </div>
   );
 }

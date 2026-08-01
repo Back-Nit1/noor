@@ -12,7 +12,9 @@
 import { ENDO_CRITERIA, type CriterionDoc } from './criteria';
 import { DEMO_PATIENTS, type Finding } from './clusters';
 
-const INDEX = 'noor-context-v1';
+// Distinct from the old criteria-only index: this corpus now holds criteria AND patient records,
+// so it must not reuse a name an older index may already occupy.
+const INDEX = 'thaakat-context-v1';
 let mossLoaded = false;
 let mossClient: any = null;
 

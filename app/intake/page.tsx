@@ -7,7 +7,7 @@ import {
 } from '@/lib/clusters';
 import LiveVoice from './LiveVoice';
 
-type Turn = { role: 'patient' | 'noor'; text: string };
+type Turn = { role: 'patient' | 'thaakat'; text: string };
 
 // Scripted so the repo is instantly demoable. The teammate wires the REAL Deepgram Voice Agent
 // (see docs/BUILD_KIT.md) — it calls the same /api routes and the same lib/clusters engine.
@@ -39,11 +39,11 @@ export default function Intake() {
 
     // 1) connect records
     setPhase('connecting');
-    say('noor', "Hi, I'm Noor. I've pulled your records together across your doctors — take your time and tell me what's been going on.");
+    say('thaakat', "Hi, I'm Thaakat. I've pulled your records together across your doctors — take your time and tell me what's been going on.");
     for (const f of patient.record) { await wait(500); push(f); }
 
     // 2) chart-aware question — Moss retrieves over HER WHOLE RECORD (<10ms) and what comes back
-    //    is what Noor cites. The question is assembled from retrieval, not a hardcoded string.
+    //    is what Thaakat cites. The question is assembled from retrieval, not a hardcoded string.
     setPhase('interview');
     await wait(500);
     const r = await fetch('/api/moss/query', {
@@ -56,7 +56,7 @@ export default function Intake() {
       .filter((d: any) => d.kind === 'record')
       .map((d: any) => d.finding as Finding)
       .slice(0, 2);
-    say('noor', cited.length
+    say('thaakat', cited.length
       ? `I can see ${joinMentions(cited.map(mentionOf))}. ${patient.question}`
       : patient.question);
 
@@ -70,14 +70,14 @@ export default function Intake() {
     if (patient.imaging) {
       setPhase('reading');
       await wait(700);
-      say('noor', patient.imaging.intro);
+      say('thaakat', patient.imaging.intro);
       img = await fetch('/api/imaging/analyze', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studyId: patient.imaging.studyId }),
       }).then((x) => x.json()).catch(() => null);
       await wait(500);
       if (img?.findings?.length) {
-        for (const f of img.findings) say('noor', f.narration);
+        for (const f of img.findings) say('thaakat', f.narration);
         push({
           id: 'radiomics', label: patient.imaging.label,
           detail: img.summary, specialty: patient.imaging.specialty, date: patient.imaging.date,
@@ -92,7 +92,7 @@ export default function Intake() {
     setMatch(top);
     setPhase('assembled');
     await wait(500);
-    if (top) say('noor', top.cluster.narration);
+    if (top) say('thaakat', top.cluster.narration);
 
     // 5) The Cost — Stedi eligibility priced against THIS cluster's confirmatory service
     const cov = await fetch('/api/eligibility', {
@@ -105,7 +105,7 @@ export default function Intake() {
     setCoverage(cov);
     const pa = cov?.priorAuthRequired === 'Y';
     if (top) {
-      say('noor', `The next step I'd suggest — ${top.cluster.confirmatory.name} — is covered${cov?.copay ? `, about $${cov.copay} out of pocket` : ''}${pa ? ", and it needs prior authorization, which I've started." : '.'}`);
+      say('thaakat', `The next step I'd suggest — ${top.cluster.confirmatory.name} — is covered${cov?.copay ? `, about $${cov.copay} out of pocket` : ''}${pa ? ", and it needs prior authorization, which I've started." : '.'}`);
     }
 
     // 6) write it to Medplum (DetectedIssue + Dossier + referral + PA)
@@ -123,7 +123,7 @@ export default function Intake() {
     setCommitted(commit);
 
     await wait(300);
-    say('noor', patient.imaging
+    say('thaakat', patient.imaging
       ? "I've assembled everything your doctors documented — including the scan they missed — into one brief. You've waited long enough. Let's get you answers."
       : "I've assembled everything your doctors already documented into one brief. Every piece of this was in your chart the whole time. You've waited long enough.");
     setRunning(false);
@@ -133,7 +133,7 @@ export default function Intake() {
     <main className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 0' }}>
         <div>
-          <h2 style={{ margin: 0 }}>Noor</h2>
+          <h2 style={{ margin: 0 }}>Thaakat</h2>
           <span className="muted" style={{ fontSize: 13 }}>reading your whole record — including the scan they missed</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -197,7 +197,7 @@ export default function Intake() {
                 <div key={f.id} style={{ margin: '0 0 14px', position: 'relative' }}>
                   <div style={{ position: 'absolute', left: -21, top: 4, width: 10, height: 10, borderRadius: 999,
                     background: f.fromImaging ? 'var(--accent-2)' : f.orphaned ? 'var(--warn)' : 'var(--accent)' }} />
-                  <div style={{ fontSize: 12 }} className="muted">{f.date} · {f.specialty}{f.orphaned && <span className="warn"> · never followed up</span>}{f.fromImaging && <span style={{ color: 'var(--accent-2)' }}> · surfaced by Noor</span>}</div>
+                  <div style={{ fontSize: 12 }} className="muted">{f.date} · {f.specialty}{f.orphaned && <span className="warn"> · never followed up</span>}{f.fromImaging && <span style={{ color: 'var(--accent-2)' }}> · surfaced by Thaakat</span>}</div>
                   <div style={{ fontWeight: 600 }}>{f.label}</div>
                   <div className="muted" style={{ fontSize: 13 }}>{f.detail}</div>
                   <div className="muted" style={{ fontSize: 11, opacity: 0.7 }}>source: {f.source}</div>
@@ -259,7 +259,7 @@ export default function Intake() {
                 background: t.role === 'patient' ? 'var(--panel-2)' : 'linear-gradient(135deg,#20305e,#3a2a5e)' }}>{t.text}</span>
             </div>
           ))}
-          {turns.length === 0 && <p className="muted">Hit 🎙️ Talk to Noor for the live voice interview, or ▶ Play demo for the scripted run. Both drive the same engine.</p>}
+          {turns.length === 0 && <p className="muted">Hit 🎙️ Talk to Thaakat for the live voice interview, or ▶ Play demo for the scripted run. Both drive the same engine.</p>}
         </div>
       </div>
     </main>
@@ -268,7 +268,7 @@ export default function Intake() {
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// "a, plus b" — Noor citing what retrieval actually surfaced from her chart
+// "a, plus b" — Thaakat citing what retrieval actually surfaced from her chart
 function joinMentions(m: string[]): string {
   if (m.length === 1) return m[0];
   return `${m.slice(0, -1).join(', ')}, plus ${m[m.length - 1]}`;

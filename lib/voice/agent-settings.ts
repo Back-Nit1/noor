@@ -1,4 +1,4 @@
-// Deepgram Voice Agent V1 `Settings` message for Noor.
+// Deepgram Voice Agent V1 `Settings` message for Thaakat.
 //
 // Wire format verified against Deepgram docs + the installed @deepgram/sdk source:
 //   endpoint  wss://agent.deepgram.com/v1/agent/converse
@@ -13,7 +13,7 @@
 //
 // Decision-support / navigation — never diagnosis. Synthetic demo data only.
 
-import { NOOR_SYSTEM_PROMPT } from '@/lib/prompts';
+import { THAAKAT_SYSTEM_PROMPT } from '@/lib/prompts';
 
 export const AGENT_WS_URL = 'wss://agent.deepgram.com/v1/agent/converse';
 
@@ -41,10 +41,10 @@ export const CLINICAL_KEYTERMS = [
 ];
 
 /**
- * Tools Noor can call mid-conversation. No `endpoint` field => Deepgram marks them
+ * Tools Thaakat can call mid-conversation. No `endpoint` field => Deepgram marks them
  * `client_side: true` and hands execution to us (see lib/voice/tools.ts).
  */
-export const NOOR_FUNCTIONS = [
+export const THAAKAT_FUNCTIONS = [
   {
     name: 'retrieve_criteria',
     description:
@@ -136,7 +136,7 @@ export const NOOR_FUNCTIONS = [
   },
 ] as const;
 
-// Voice-specific orchestration rules layered on top of the shared Noor persona in lib/prompts.ts.
+// Voice-specific orchestration rules layered on top of the shared Thaakat persona in lib/prompts.ts.
 const VOICE_ORCHESTRATION = `
 YOU ARE ON A LIVE PHONE-QUALITY VOICE CALL. Everything you say is spoken aloud.
 
@@ -162,10 +162,10 @@ SAFETY (non-negotiable):
 - You surface documented findings + a question for a clinician. You never diagnose.
 `;
 
-export const NOOR_VOICE_PROMPT = `${NOOR_SYSTEM_PROMPT}\n${VOICE_ORCHESTRATION}`;
+export const THAAKAT_VOICE_PROMPT = `${THAAKAT_SYSTEM_PROMPT}\n${VOICE_ORCHESTRATION}`;
 
-export const NOOR_GREETING =
-  "Hi, I'm Noor. I've read through your records across all of your doctors before this call — " +
+export const THAAKAT_GREETING =
+  "Hi, I'm Thaakat. I've read through your records across all of your doctors before this call — " +
   "so you don't have to start from the beginning again. Take your time and tell me what's been going on.";
 
 /**
@@ -176,7 +176,7 @@ export const NOOR_GREETING =
 export function buildSettings(inputSampleRate: number) {
   return {
     type: 'Settings',
-    tags: ['noor', 'demo-synthetic'],
+    tags: ['thaakat', 'demo-synthetic'],
     audio: {
       input: { encoding: 'linear16', sample_rate: inputSampleRate },
       output: { encoding: 'linear16', sample_rate: OUTPUT_SAMPLE_RATE, container: 'none' },
@@ -186,19 +186,19 @@ export function buildSettings(inputSampleRate: number) {
       listen: {
         provider: {
           type: 'deepgram',
-          // nova-3 + keyterms biases recognition toward clinical vocab.
+          // nova-3-medical + keyterms biases recognition toward clinical vocab (verified valid).
           // Alternative preset: { type:'deepgram', model:'flux-general-en', version:'v2' }
-          model: 'nova-3',
+          model: 'nova-3-medical',
           keyterms: CLINICAL_KEYTERMS,
         },
       },
       think: {
         provider: { type: 'anthropic', model: 'claude-haiku-4-5', temperature: 0.4 },
-        prompt: NOOR_VOICE_PROMPT,
-        functions: NOOR_FUNCTIONS,
+        prompt: THAAKAT_VOICE_PROMPT,
+        functions: THAAKAT_FUNCTIONS,
       },
       speak: { provider: { type: 'deepgram', model: 'aura-2-thalia-en' } },
-      greeting: NOOR_GREETING,
+      greeting: THAAKAT_GREETING,
     },
   };
 }

@@ -45,7 +45,7 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
-export class NoorToolRunner {
+export class ThaakatToolRunner {
   private record: Finding[] = [];
   private imaging: ImagingResponse | null = null;
   private cluster: ClusterMatch | null = null;
@@ -83,7 +83,7 @@ export class NoorToolRunner {
     try {
       return JSON.stringify(await this.dispatch(name, args));
     } catch (e) {
-      console.warn('[noor:tool]', name, e);
+      console.warn('[thaakat:tool]', name, e);
       return JSON.stringify({ error: (e as Error).message, advice: 'Continue the conversation naturally.' });
     }
   }
@@ -110,7 +110,7 @@ export class NoorToolRunner {
   }
 
   // ── Moss: retrieval-heavy, several lookups per turn ──
-  // Retrieves over BOTH the criteria corpus and HER OWN record, so Noor can cite the actual
+  // Retrieves over BOTH the criteria corpus and HER OWN record, so Thaakat can cite the actual
   // document ("a CA-125 from 2024 nobody followed up") in the same breath as the next question.
   private async retrieveCriteria(query: string) {
     this.events.onPhase?.('interview');
@@ -150,7 +150,7 @@ export class NoorToolRunner {
       detail,
       specialty: 'Patient (today)',
       date: new Date().toISOString().slice(0, 7),
-      source: 'Noor voice intake',
+      source: 'Thaakat voice intake',
       tags,
     });
     return { recorded: true, label, tags, findings_on_timeline: this.record.length };
@@ -169,7 +169,7 @@ export class NoorToolRunner {
         id: `radiomics-${Date.now()}`,
         label: meta?.label ?? 'MRI re-read: signs consistent with deep infiltrating endometriosis',
         detail: img.summary ?? '',
-        specialty: meta?.specialty ?? 'Noor radiomics',
+        specialty: meta?.specialty ?? 'Thaakat radiomics',
         date: meta?.date ?? '2024-06',
         source: meta?.source ?? 'Radiomics re-read of 2024 pelvic MRI',
         tags: meta?.tags ?? ['die-imaging'],

@@ -3,10 +3,10 @@
 //
 // Deepgram sends raw headerless linear16 at 24 kHz. We schedule each chunk back-to-back on a
 // Web Audio timeline so playback is gapless, and keep handles to every scheduled source so
-// `interrupt()` can cut Noor off mid-sentence the moment the user starts talking.
+// `interrupt()` can cut Thaakat off mid-sentence the moment the user starts talking.
 
 const CAPTURE_WORKLET = `
-class NoorCapture extends AudioWorkletProcessor {
+class ThaakatCapture extends AudioWorkletProcessor {
   constructor() {
     super();
     // ~21ms of audio at 48k. Batching avoids one websocket frame per 128-sample render quantum.
@@ -28,7 +28,7 @@ class NoorCapture extends AudioWorkletProcessor {
     return true;
   }
 }
-registerProcessor('noor-capture', NoorCapture);
+registerProcessor('thaakat-capture', ThaakatCapture);
 `;
 
 export class MicCapture {
@@ -57,7 +57,7 @@ export class MicCapture {
     }
 
     this.src = this.ctx.createMediaStreamSource(this.stream);
-    this.node = new AudioWorkletNode(this.ctx, 'noor-capture');
+    this.node = new AudioWorkletNode(this.ctx, 'thaakat-capture');
     this.node.port.onmessage = (e) => onPcm(e.data as ArrayBuffer);
     this.src.connect(this.node);
     // The worklet only gets pulled if it reaches the destination — but route it through a

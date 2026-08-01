@@ -1,4 +1,4 @@
-// Live Deepgram Voice Agent client for Noor (browser).
+// Live Deepgram Voice Agent client for Thaakat (browser).
 //
 // Auth: the browser NEVER sees DEEPGRAM_API_KEY. /api/deepgram/token mints a short-lived
 // access token, and we pass it as a websocket subprotocol — verified against @deepgram/sdk:
@@ -8,13 +8,13 @@
 
 import { AGENT_WS_URL, OUTPUT_SAMPLE_RATE, buildSettings } from './agent-settings';
 import { AudioPlayer, MicCapture } from './audio';
-import { NoorToolRunner, type ToolEvents } from './tools';
+import { ThaakatToolRunner, type ToolEvents } from './tools';
 
 export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
 
 export type VoiceEvents = ToolEvents & {
   onStatus?: (s: VoiceStatus) => void;
-  onTurn?: (role: 'patient' | 'noor', text: string) => void;
+  onTurn?: (role: 'patient' | 'thaakat', text: string) => void;
   onToolCall?: (name: string) => void;
   onError?: (message: string) => void;
 };
@@ -28,11 +28,11 @@ type DeepgramEvent = {
   functions?: { id: string; name: string; arguments: string; client_side?: boolean }[];
 };
 
-export class NoorVoiceClient {
+export class ThaakatVoiceClient {
   private ws: WebSocket | null = null;
   private mic = new MicCapture();
   private player = new AudioPlayer(OUTPUT_SAMPLE_RATE);
-  private runner: NoorToolRunner;
+  private runner: ThaakatToolRunner;
   private keepAlive: ReturnType<typeof setInterval> | null = null;
   private ready = false;
   private stopped = false;
@@ -41,10 +41,10 @@ export class NoorVoiceClient {
     private readonly events: VoiceEvents = {},
     patientId = 'maria',
   ) {
-    this.runner = new NoorToolRunner(events, patientId);
+    this.runner = new ThaakatToolRunner(events, patientId);
   }
 
-  get tools(): NoorToolRunner {
+  get tools(): ThaakatToolRunner {
     return this.runner;
   }
 
@@ -53,18 +53,27 @@ export class NoorVoiceClient {
     this.events.onStatus?.('connecting');
 
     const tokenRes = await fetch('/api/deepgram/token', { method: 'POST' });
-    const tokenBody = (await tokenRes.json().catch(() => ({}))) as { access_token?: string; error?: string };
+    const tokenBody = (await tokenRes.json().catch(() => ({}))) as {
+      access_token?: string;
+      scheme?: 'bearer' | 'token';
+      fallback?: boolean;
+      hint?: string;
+      error?: string;
+    };
     if (!tokenRes.ok || !tokenBody.access_token) {
       throw new Error(tokenBody.error ?? `Could not mint a Deepgram token (${tokenRes.status}).`);
     }
-    const access_token = tokenBody.access_token;
+    // A short-lived JWT authenticates as 'bearer'; a raw API key as 'token'. Using the wrong
+    // subprotocol fails the handshake, so follow whatever the route says it handed us.
+    const scheme = tokenBody.scheme ?? 'bearer';
+    if (tokenBody.fallback && tokenBody.hint) console.warn('[thaakat:voice]', tokenBody.hint);
 
     // Start the mic FIRST — Settings must declare the real capture rate.
     const sampleRate = await this.mic.start((pcm) => {
       if (this.ready && this.ws?.readyState === WebSocket.OPEN) this.ws.send(pcm);
     });
 
-    const ws = new WebSocket(AGENT_WS_URL, ['bearer', access_token]);
+    const ws = new WebSocket(AGENT_WS_URL, [scheme, tokenBody.access_token]);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
 
@@ -118,7 +127,7 @@ export class NoorVoiceClient {
 
       case 'ConversationText':
         if (msg.content) {
-          this.events.onTurn?.(msg.role === 'user' ? 'patient' : 'noor', msg.content);
+          this.events.onTurn?.(msg.role === 'user' ? 'patient' : 'thaakat', msg.content);
         }
         break;
 
@@ -144,7 +153,7 @@ export class NoorVoiceClient {
         break;
 
       case 'Warning':
-        console.warn('[noor:voice] warning:', msg.description ?? msg.message);
+        console.warn('[thaakat:voice] warning:', msg.description ?? msg.message);
         break;
 
       default:

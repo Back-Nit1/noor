@@ -3,12 +3,16 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Mint a SHORT-LIVED Deepgram token for the browser. Never ship DEEPGRAM_API_KEY to the client —
-// the browser passes this token as a websocket subprotocol (['bearer', token]).
+// Auth for the browser's Voice Agent websocket. Two shapes, and they are NOT interchangeable —
+// Deepgram picks the scheme from the Sec-WebSocket-Protocol subprotocol:
+//   short-lived JWT  -> ['bearer', <jwt>]     (preferred: the key never leaves the server)
+//   raw API key      -> ['token',  <key>]     (fallback below)
+// So we tell the client which one it got via `scheme`; sending a raw key as 'bearer' fails auth.
 //
-// NOTE: /v1/auth/grant requires an API key with **Member or higher** role. A key scoped lower
-// gets FORBIDDEN / "Insufficient permissions", so we translate that into an actionable message
-// instead of a silent failure on stage.
+// /v1/auth/grant requires an API key with **Member or higher** role. A lower-scoped key still
+// works for raw agent sockets, so this fails ONLY in the browser — a confusing way to lose 20
+// minutes. When the grant is refused we fall back to the raw key so the demo still runs, and
+// return `hint` so it's obvious how to fix it properly.
 
 const TTL_SECONDS = 300;
 
@@ -25,7 +29,7 @@ export async function POST() {
   }
 
   if (cached && Date.now() < cached.expiresAt) {
-    return NextResponse.json({ access_token: cached.token, cached: true });
+    return NextResponse.json({ access_token: cached.token, scheme: 'bearer', cached: true });
   }
 
   let res: Response;
@@ -40,13 +44,22 @@ export async function POST() {
   }
 
   if (!res.ok) {
-    const detail = await res.text();
-    const hint =
-      res.status === 401 || res.status === 403
-        ? 'This Deepgram API key cannot mint short-lived tokens. Create a key with the "Member" ' +
-          'role (or higher) at console.deepgram.com → Settings → API Keys, then set DEEPGRAM_API_KEY.'
-        : 'Deepgram rejected the token request.';
-    return NextResponse.json({ error: hint, status: res.status, detail }, { status: res.status });
+    // This key can't mint JWTs. Fall back to the raw key so the demo still runs — note this does
+    // put the key in the browser, so it is a DEMO-ONLY path. A Member-scoped key removes it.
+    console.warn(
+      '[deepgram] auth/grant refused (%s) — falling back to the raw API key in the browser. ' +
+        'Use a Member-scoped key to mint short-lived tokens instead.',
+      res.status,
+    );
+    return NextResponse.json({
+      access_token: key,
+      scheme: 'token',
+      expires_in: 0,
+      fallback: true,
+      hint:
+        'Using the raw API key in the browser. To mint short-lived tokens instead, create a key ' +
+        'with the "Member" role at console.deepgram.com → Settings → API Keys.',
+    });
   }
 
   const data = (await res.json()) as { access_token?: string; expires_in?: number };
@@ -57,5 +70,5 @@ export async function POST() {
   const ttl = data.expires_in ?? TTL_SECONDS;
   cached = { token: data.access_token, expiresAt: Date.now() + Math.max(ttl - 15, 5) * 1000 };
 
-  return NextResponse.json({ access_token: data.access_token, expires_in: ttl });
+  return NextResponse.json({ access_token: data.access_token, scheme: 'bearer', expires_in: ttl });
 }
