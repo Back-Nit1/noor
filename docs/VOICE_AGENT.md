@@ -4,26 +4,41 @@ The real voice agent is wired. `/intake` has two buttons:
 
 | Button | What it does |
 |---|---|
-| 🎙️ **Talk to Noor** | Live Deepgram Voice Agent. Real mic → real conversation → drives the real routes. |
+| 🎙️ **Talk to Thaakat** | Live Deepgram Voice Agent. Real mic → real conversation → drives the real routes. |
 | ▶ **Play demo** | The scripted run. Untouched — this is the on-stage fallback if wifi eats the websocket. |
 
 Both drive the **same** cluster engine, the same API routes and the same cards.
 
 ## Setup (one thing to get right)
 
-`DEEPGRAM_API_KEY` must be a key with the **Member** role or higher — the browser never sees the
-key, it gets a short-lived token from `/api/deepgram/token`, and `/v1/auth/grant` requires Member
-scope. A lower-scoped key still works for raw agent sockets, so this fails *only* in the browser,
-which is a confusing way to lose 20 minutes. `/api/deepgram/token` returns an explicit message if
-the scope is wrong.
-
+Use a `DEEPGRAM_API_KEY` with the **Member** role or higher. Then the browser never sees the key —
+it gets a short-lived JWT from `/api/deepgram/token`, and `/v1/auth/grant` requires Member scope.
 Create one at console.deepgram.com → Settings → API Keys.
+
+A lower-scoped key still works for raw agent sockets, so this fails *only* in the browser — a
+confusing way to lose 20 minutes. When the grant is refused, the route falls back to handing the
+browser the raw key so the demo still runs. **That fallback is demo-only**: it does put the key in
+the client, which is exactly what `CLAUDE.md` says not to ship.
+
+### The subprotocol trap
+
+Deepgram picks the auth scheme from the websocket subprotocol, and the two are **not**
+interchangeable:
+
+| What you have | Subprotocol |
+|---|---|
+| short-lived JWT (`/v1/auth/grant`) | `['bearer', <jwt>]` |
+| raw API key | `['token', <key>]` |
+
+So the route returns a `scheme` field and the client uses it. Hardcoding either one gives you an
+integration that works right up until the key type changes, then fails the handshake with no
+useful error.
 
 ## How it works
 
 ```
 mic → linear16 PCM ─┐
-                    ├─► Deepgram Voice Agent (STT nova-3 + Claude think + Aura TTS)
+                    ├─► Deepgram Voice Agent (nova-3-medical STT + Claude think + Aura TTS)
 speakers ◄─ PCM ────┘              │
                                    ▼  FunctionCallRequest (client_side: true)
                         lib/voice/tools.ts  ──►  our real routes
@@ -42,7 +57,7 @@ the coverage answer and the FHIR write are never the model's opinion.
 
 | Tool | Runs |
 |---|---|
-| `retrieve_criteria` | Moss over criteria **and** her own record, so Noor can cite the actual document mid-question. Called every turn — this is the retrieval-heavy story. |
+| `retrieve_criteria` | Moss over criteria **and** her own record, so Thaakat can cite the actual document mid-question. Called every turn — this is the retrieval-heavy story. |
 | `record_symptom` | What she says becomes a documented `Finding` on the timeline — voice as the sensor. |
 | `analyze_imaging` | Re-reads the scan that was called normal (the moat). |
 | `assemble_record` | Runs the cluster engine over historical + live findings. |
@@ -57,19 +72,28 @@ the coverage answer and the FHIR write are never the model's opinion.
 - `lib/voice/tools.ts` — executes the tools against the real routes
 - `app/intake/LiveVoice.tsx` — the button + status; drives the page's cards
 
-## Verified against the live API
+## What was verified against the live API
 
-`Welcome → SettingsApplied → greeting synthesized → FunctionCallRequest(retrieve_criteria,
-client_side:true) → FunctionCallResponse accepted → agent asked the retrieved follow-up.`
-Safety framing held ("deserves a closer look", no condition named).
+Run against `wss://agent.deepgram.com/v1/agent/converse` with a real key:
+
+- **Full tool loop** (with `nova-3` STT): `Welcome → SettingsApplied → greeting synthesized →
+  FunctionCallRequest(retrieve_criteria, client_side:true) → FunctionCallResponse accepted →
+  agent asked the retrieved follow-up.` Safety framing held — "deserves a closer look", no
+  condition named.
+- **`nova-3-medical`** accepted by the agent API (`SettingsApplied`), which is why it's the model
+  we ship.
+
+**Not yet verified:** the final config end-to-end *in a browser* with a real mic — that needs a
+Member-scoped key. Mic capture, playback and barge-in are therefore the least-exercised paths.
+Do one live call before demoing, and keep ▶ Play demo as the fallback.
 
 ## Notes
 
 - **Barge-in** is real: `UserStartedSpeaking` calls `AudioPlayer.interrupt()`, killing queued TTS.
 - **Sample rate**: we send the capture `AudioContext`'s *actual* rate in `Settings`, because
   browsers may ignore a requested rate and a mismatch means chipmunk audio.
-- **STT** is `nova-3` + `keyterms` (endometriosis, dyspareunia, CA-125…) so clinical vocab doesn't
-  get mangled into a missed cluster tag. Swap to `flux-general-en` + `version: "v2"` in
+- **STT** is `nova-3-medical` + `keyterms` (endometriosis, dyspareunia, CA-125…) so clinical vocab
+  doesn't get mangled into a missed cluster tag. Swap to `flux-general-en` + `version: "v2"` in
   `buildSettings` if you want to demo Flux's eager endpointing instead.
 - Tools never throw — a failed tool returns an error payload the agent talks around, rather than
   leaving Deepgram waiting on a response that never comes.
