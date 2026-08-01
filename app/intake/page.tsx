@@ -231,7 +231,12 @@ export default function Intake() {
               )}
               {committed && (
                 <p className="muted" style={{ fontSize: 11, marginBottom: 0 }}>
-                  {committed.dryRun ? committed.note : `Wrote ${Object.keys(committed.ids).length} FHIR resources${committed.ids?.DetectedIssue ? ' (incl. DetectedIssue)' : ''} to Medplum.`}
+                  {/* the commit can fail (bad creds, bots off) — never let that crash the run */}
+                  {committed.error
+                    ? `FHIR write unavailable — ${committed.error}. The assembled record above is unaffected.`
+                    : committed.dryRun
+                      ? committed.note
+                      : `Wrote ${Object.keys(committed.ids ?? {}).length} FHIR resources${committed.ids?.DetectedIssue ? ' (incl. DetectedIssue)' : ''} to Medplum.`}
                 </p>
               )}
             </div>
@@ -247,7 +252,7 @@ export default function Intake() {
                 background: t.role === 'patient' ? 'var(--panel-2)' : 'linear-gradient(135deg,#20305e,#3a2a5e)' }}>{t.text}</span>
             </div>
           ))}
-          {turns.length === 0 && <p className="muted">Voice interview appears here. (Wire live Deepgram to replace the script — docs/BUILD_KIT.md.)</p>}
+          {turns.length === 0 && <p className="muted">Hit 🎙️ Talk to Noor for the live voice interview, or ▶ Play demo for the scripted run. Both drive the same engine.</p>}
         </div>
       </div>
     </main>
