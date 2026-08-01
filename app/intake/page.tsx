@@ -20,7 +20,9 @@ export default function Intake() {
   const [coverage, setCoverage] = useState<any | null>(null);
   const [committed, setCommitted] = useState<any | null>(null);
   const [phase, setPhase] = useState<'idle' | 'connecting' | 'interview' | 'reading' | 'assembled'>('idle');
-  const [retrieval, setRetrieval] = useState<{ ms: number; backend?: string } | null>(null);
+  // ms = the Moss query itself (the number we claim on stage); totalMs also includes the
+  // Next-server -> Moss hop. Kept separate so the HUD never quotes an unreproducible figure.
+  const [retrieval, setRetrieval] = useState<{ ms: number; totalMs?: number; backend?: string } | null>(null);
   const [running, setRunning] = useState(false);
 
   const say = (role: Turn['role'], text: string) => setTurns((t) => [...t, { role, text }]);
@@ -50,7 +52,7 @@ export default function Intake() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: patient.retrievalQuery, patientId: patient.id, topK: 4 }),
     }).then((x) => x.json()).catch(() => ({}));
-    if (typeof r.ms === 'number') setRetrieval({ ms: r.ms, backend: r.backend });
+    if (typeof r.ms === 'number') setRetrieval({ ms: r.ms, totalMs: r.totalMs, backend: r.backend });
 
     const cited: Finding[] = (r.results ?? [])
       .filter((d: any) => d.kind === 'record')
@@ -189,7 +191,7 @@ export default function Intake() {
         <div className="grid">
           <div className="card">
             <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
-              📄 The Dossier — assembled record {phase === 'connecting' && <span className="pill">connecting via patient-access APIs…</span>} {retrieval && <span className="pill">retrieval {retrieval.ms}ms{retrieval.backend ? ` · ${retrieval.backend}` : ''}</span>}
+              📄 The Dossier — assembled record {phase === 'connecting' && <span className="pill">connecting via patient-access APIs…</span>} {retrieval && <span className="pill" title="Moss query time vs. full round trip including the Next-server hop">{retrieval.backend === 'local-fallback' ? 'local fallback' : 'Moss'} {retrieval.ms}ms{retrieval.totalMs != null ? ` · ${retrieval.totalMs}ms end-to-end` : ''}</span>}
             </div>
             {record.length === 0 && <p className="muted">Press ▶ Play demo — your records assemble here.</p>}
             <div style={{ borderLeft: '2px solid var(--border)', paddingLeft: 14 }}>

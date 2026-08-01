@@ -110,10 +110,24 @@ function inScope(d: ContextDoc, patientId?: string): boolean {
   return d.kind === 'criterion' || !patientId || d.patientId === patientId;
 }
 
-export async function retrieveContext(
+// Timing is reported in two separate numbers on purpose. Sri (Moss) will ask precisely where
+// retrieval happens, and the playbook's own "what loses this panel" list includes quoting a
+// latency you can't reproduce live. So:
+//   retrievalMs — the moss.query() call itself. This is the number we claim on stage.
+//   totalMs     — the whole server-side handler, which also includes the Next server -> Moss
+//                 network hop. Always larger. Never quote this as "Moss latency".
+export type RetrievalResult = {
+  docs: ContextDoc[];
+  retrievalMs: number;
+  totalMs: number;
+  backend: 'moss' | 'local-fallback';
+};
+
+export async function retrieveContextTimed(
   query: string,
   opts: { topK?: number; patientId?: string } = {},
-): Promise<ContextDoc[]> {
+): Promise<RetrievalResult> {
+  const t0 = Date.now();
   const topK = opts.topK ?? 4;
   const pool = CORPUS.filter((d) => inScope(d, opts.patientId));
 
@@ -121,18 +135,37 @@ export async function retrieveContext(
   if (moss) {
     try {
       // over-fetch, then scope down — Moss metadata filtering shape gets confirmed at the event
+      const q0 = Date.now();
       const results: any = await moss.query(INDEX, query, { topK: topK * 4, alpha: 0.8 });
+      const retrievalMs = Date.now() - q0;
       const items: any[] = results?.results ?? results?.matches ?? results ?? [];
       const mapped = items
         .map((r) => BY_ID.get(r.id ?? r.documentId))
         .filter((d): d is ContextDoc => !!d && inScope(d, opts.patientId))
         .slice(0, topK);
-      if (mapped.length) return mapped;
+      if (mapped.length) {
+        return { docs: mapped, retrievalMs, totalMs: Date.now() - t0, backend: 'moss' };
+      }
     } catch (e) {
       console.warn('[moss] query failed, using local fallback:', (e as Error).message);
     }
   }
-  return localRank(query, pool, topK);
+
+  const l0 = Date.now();
+  const docs = localRank(query, pool, topK);
+  return {
+    docs,
+    retrievalMs: Date.now() - l0,
+    totalMs: Date.now() - t0,
+    backend: 'local-fallback',
+  };
+}
+
+export async function retrieveContext(
+  query: string,
+  opts: { topK?: number; patientId?: string } = {},
+): Promise<ContextDoc[]> {
+  return (await retrieveContextTimed(query, opts)).docs;
 }
 
 // Criteria-only lookup (what the voice agent's retrieve_criteria function calls).
