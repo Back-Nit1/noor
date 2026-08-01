@@ -7,6 +7,7 @@ import {
 } from '@/lib/clusters';
 import LiveVoice from './LiveVoice';
 import ScanViewer from './ScanViewer';
+import CoveragePanel from './CoveragePanel';
 import type { ImagingResult } from '@/lib/imaging';
 
 type Turn = { role: 'patient' | 'thaakat'; text: string };
@@ -229,23 +230,7 @@ export default function Intake() {
                 <div className="pill" style={{ marginBottom: 8 }}>The Ask (for the clinician — never a diagnosis)</div>
                 <p style={{ margin: 0 }}>{match.cluster.ask}</p>
               </div>
-              {coverage && (
-                <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-                  <span className="pill" style={{ marginBottom: 8 }}>The Cost</span>
-                  {/* an eligibility error is NOT a coverage denial — don't render it as one */}
-                  {coverage.error ? (
-                    <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>
-                      Coverage check unavailable — {coverage.error}
-                    </p>
-                  ) : (
-                    <p style={{ margin: '6px 0 0' }}>
-                      <span className={coverage.active ? 'good' : 'bad'}>{coverage.active ? 'Covered' : 'Not covered'}</span>
-                      {coverage.copay && <> · ~${coverage.copay} out of pocket</>}
-                      {coverage.priorAuthRequired === 'Y' && <> · <span className="warn">prior auth started</span></>}
-                    </p>
-                  )}
-                </div>
-              )}
+              {coverage && <CoveragePanel coverage={coverage} />}
               {committed && (
                 <p className="muted" style={{ fontSize: 11, marginBottom: 0 }}>
                   {/* the commit can fail (bad creds, bots off) — never let that crash the run */}
