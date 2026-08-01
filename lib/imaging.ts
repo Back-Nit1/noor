@@ -43,6 +43,8 @@ export type ImagingResult = {
   isMock: boolean;
   // the real trained model behind the read — measured, not asserted
   model: ModelCard;
+  // true when studyId didn't match a known study — callers must not treat this as a real read
+  notFound?: boolean;
 };
 
 // Pulled from radiomics/real_endo_summary.json so the UI quotes measured values only.
@@ -91,6 +93,18 @@ export async function analyzeImaging(studyId: string): Promise<ImagingResult> {
   // SEAM (production path): pull the study from Medplum (ImagingStudy -> Binary), run
   // radiomics/real_pipeline.py feature extraction, score with the trained classifier, and
   // emit findings + regions here. Everything downstream already consumes this shape.
-  const hit = SAMPLE_STUDIES[studyId] ?? SAMPLE_STUDIES['demo-pelvic-mri-1'];
+  const hit = SAMPLE_STUDIES[studyId];
+  if (!hit) {
+    // Unknown studyId: never silently substitute another patient's study.
+    return {
+      studyId,
+      modality: 'MRI',
+      isMock: true,
+      model: REAL_MODEL,
+      summary: '',
+      findings: [],
+      notFound: true,
+    };
+  }
   return { ...hit, model: REAL_MODEL };
 }

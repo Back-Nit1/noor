@@ -10,7 +10,7 @@ If an item turns out to need a human decision, **skip it, note why in a commit m
 
 ## Tier 1 — real bugs, do these first
 
-- [ ] **1. `analyzeImaging` returns the wrong study for unknown IDs.**
+- [x] **1. `analyzeImaging` returns the wrong study for unknown IDs.**
   `lib/imaging.ts:94` falls back to `SAMPLE_STUDIES['demo-pelvic-mri-1']` for any unknown ID, so
   Dana (who has no imaging) can get an endometriosis MRI dropped on her timeline with `die-imaging`
   tags via `lib/voice/tools.ts:160-178`, flipping her cluster match. Return a `notFound`-shaped

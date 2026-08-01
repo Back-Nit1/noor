@@ -164,7 +164,7 @@ export class ThaakatToolRunner {
     this.events.onImaging?.(img);
 
     const meta = this.patient.imaging;
-    if (img.findings?.length) {
+    if (meta && img.findings?.length) {
       this.push({
         id: `radiomics-${Date.now()}`,
         label: meta?.label ?? 'MRI re-read: signs consistent with deep infiltrating endometriosis',
