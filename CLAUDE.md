@@ -35,3 +35,56 @@ Thaakat assembles a woman's WHOLE longitudinal record across specialists, **re-r
 - Re-check against the rules above.
 - `pnpm build` (or `tsc --noEmit`) must pass — a hallucinated field on a typed FHIR resource becomes a compile error, which is the point.
 - Keep conversations scoped to one task; re-read the relevant doc if context was summarized.
+
+---
+
+# Security policy — applies to every agent, especially unattended ones
+
+Enforced by `.claude/settings.json` (permissions) and `.claude/hooks/` (pre-tool-use hooks).
+Hooks are deterministic: exit code 2 blocks the action with no override and no prompt.
+**If a hook blocks you, that is the correct outcome. Do not try to work around it, and do not
+rewrite the hook or the settings file — both are themselves protected. Stop and leave a note.**
+
+## Branch policy — the hard rule
+- **All work commits to the `Nitu` branch. Nothing else, ever.**
+- Never `checkout`/`switch` to another branch. Never commit or push to `main`.
+- Never merge, rebase, cherry-pick, force-push, `reset --hard`, or `git clean`. History is append-only.
+- Never open or merge a PR. A human does that.
+- If HEAD is not `Nitu`, stop and say so — do not "fix" it by switching.
+
+## Secrets
+- Never read `.env`, `.env.*`, `.medplum/`, `secrets/`, `~/.aws`, `~/.ssh`, or any key/credential
+  file. **Anything you read enters the transcript — reading it IS the leak.**
+  To learn what variables exist, read `.env.example` (names only, no values).
+- Never write a literal API key, token, or private key into any file. Use `process.env.<NAME>` and
+  add the variable name to `.env.example`.
+- Never put a secret behind a `NEXT_PUBLIC_` prefix — that ships it to the browser.
+- Never print environment variables (`env`, `printenv`, `echo $ANTHROPIC_API_KEY`).
+
+## Destructive actions — never, without exception
+- `rm -rf`, `sudo`, `mkfs`, `dd` to a device, recursive `chmod 777`
+- `DROP TABLE`, `TRUNCATE`, unqualified `DELETE FROM`
+- Piping downloaded content into a shell (`curl … | bash`) — that executes untrusted remote code
+- `vercel --prod`, `pnpm publish`, `gh secret`, deleting repos or branches
+- Editing `pnpm-lock.yaml` by hand, `.git/` internals, or the guardrail files themselves
+
+## Committing (unattended agents)
+Before every commit, in this order:
+1. `pnpm build` or `npx tsc --noEmit` **must pass.** Never commit a red build.
+2. `git status` — confirm HEAD is `Nitu` and there are no unresolved merge conflicts.
+   If there is a conflict you cannot resolve with high confidence, **stop and leave it for a human.**
+   Committing conflict markers overnight is worse than committing nothing.
+3. `git diff --cached` — read your own diff. If it contains anything key-shaped, unstage it.
+4. Commit only files you deliberately changed. Prefer explicit paths over `git add -A`.
+5. Small, single-purpose commits with real messages. No `wip`, no `.`, no `update`.
+6. Push to `origin Nitu` only.
+
+## Scope discipline overnight
+- Work only on what you were asked. Do not opportunistically refactor, reformat, upgrade
+  dependencies, or "clean up" unrelated files. A large surprise diff in the morning is a failure.
+- Never delete a file you did not create in this session.
+- Never touch `docs/DATASET_CATALOG.md`, `.datasets/`, or anything gitignored.
+- If you are blocked, uncertain, or a change would need a judgment call a human should make:
+  **stop and write the question into your commit message or a note file.** Do not guess.
+- Synthetic data only, always. Decision-support framing, never "diagnosis" — this holds in code
+  comments and commit messages too.

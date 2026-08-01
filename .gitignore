@@ -20,7 +20,12 @@ medplum/.env
 .vercel
 
 # misc
-.claude/
+# Track the shared guardrails (permissions + pre-tool-use hooks) so every agent and
+# every clone gets them; keep personal/local overrides out.
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/settings.local.json
 .DS_Store
 *.log
 npm-debug.log*
