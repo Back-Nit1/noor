@@ -43,7 +43,6 @@
       "Bash(npm publish:*)"
     ],
     "ask": [
-      "Bash(git push:*)",
       "Bash(gh pr create:*)",
       "Bash(pnpm add:*)",
       "Bash(pnpm remove:*)"
@@ -61,7 +60,8 @@
       "Bash(pnpm install:*)",
       "Bash(pnpm lint:*)",
       "Bash(pnpm test:*)",
-      "Bash(npx tsc --noEmit:*)"
+      "Bash(npx tsc --noEmit:*)",
+      "Bash(git push:*)"
     ]
   },
   "hooks": {

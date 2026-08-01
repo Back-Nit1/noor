@@ -40,3 +40,6 @@ next-env.d.ts
 
 # Local research notes; keep out of the shared repository.
 docs/DATASET_CATALOG.md
+
+# overnight agent loop log
+overnight.log

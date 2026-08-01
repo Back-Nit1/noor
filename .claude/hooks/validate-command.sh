@@ -29,7 +29,11 @@ cmd="$(printf '%s' "$input" | jq -r '.tool_input.command // empty')"
 
 # ---------- 1. destructive filesystem / history ----------
 declare -a destructive=(
-  'rm[[:space:]]+(-[a-zA-Z]*[[:space:]]+)*-?[a-zA-Z]*[rR][a-zA-Z]*f|rm[[:space:]]+-[a-zA-Z]*f[a-zA-Z]*[rR]'
+  # Require an actual flag cluster (leading dash) containing both r and f;
+  # otherwise an r...f sequence in a FILENAME false-positives.
+  '(^|[|;&[:space:]])rm[[:space:]]+(-[a-zA-Z]+[[:space:]]+)*-[a-zA-Z]*([rR][a-zA-Z]*f|f[a-zA-Z]*[rR])'
+  # Same thing with the flags split across arguments: rm -r -f dist
+  '(^|[|;&[:space:]])rm[[:space:]]+(-[a-zA-Z]+[[:space:]]+)*(-[rR][[:space:]]+(-[a-zA-Z]+[[:space:]]+)*-[a-zA-Z]*f|-f[[:space:]]+(-[a-zA-Z]+[[:space:]]+)*-[a-zA-Z]*[rR])'
   ':\(\)\{.*\|.*&.*\};:'
   'mkfs|dd[[:space:]]+if=.*of=/dev/'
   'chmod[[:space:]]+-R[[:space:]]+777[[:space:]]+/'
@@ -81,7 +85,10 @@ for target in "${protected_targets[@]}"; do
   if printf '%s' "$scan_cmd" | grep -Eq ">>?[[:space:]]*[^|;&]*${target}"; then
     deny "This command redirects shell output into a protected file matching '${target}'. Secrets and guardrail config are edited by humans only."
   fi
-  if printf '%s' "$scan_cmd" | grep -Eq "(sed[[:space:]]+-i|tee|truncate|dd|cp|mv|install|rm|unlink|shred|chmod|chown|ln)[^|;&]*${target}"; then
+  # Anchor to command position: these must be the verb, not a substring of another
+  # word (bare 'rm' otherwise matches inside grep -n "...rm..."). 'git add <protected>'
+  # is staging, not writing, and is intentionally still allowed.
+  if printf '%s' "$scan_cmd" | grep -Eq "(^|[|;&[:space:]])(sed[[:space:]]+-i|tee|truncate|dd|cp|mv|install|rm|unlink|shred|chmod|chown|ln)[[:space:]][^|;&]*${target}"; then
     deny "This command writes to, deletes, or changes permissions on a protected file matching '${target}'. Secrets and guardrail config are managed by humans only — and the guardrails may not disarm themselves."
   fi
   # reading secrets into the transcript is itself the leak
