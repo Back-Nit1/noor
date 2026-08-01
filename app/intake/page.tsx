@@ -222,11 +222,18 @@ export default function Intake() {
               {coverage && (
                 <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
                   <span className="pill" style={{ marginBottom: 8 }}>The Cost</span>
-                  <p style={{ margin: '6px 0 0' }}>
-                    <span className={coverage.active ? 'good' : 'bad'}>{coverage.active ? 'Covered' : 'Not covered'}</span>
-                    {coverage.copay && <> · ~${coverage.copay} out of pocket</>}
-                    {coverage.priorAuthRequired === 'Y' && <> · <span className="warn">prior auth started</span></>}
-                  </p>
+                  {/* an eligibility error is NOT a coverage denial — don't render it as one */}
+                  {coverage.error ? (
+                    <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>
+                      Coverage check unavailable — {coverage.error}
+                    </p>
+                  ) : (
+                    <p style={{ margin: '6px 0 0' }}>
+                      <span className={coverage.active ? 'good' : 'bad'}>{coverage.active ? 'Covered' : 'Not covered'}</span>
+                      {coverage.copay && <> · ~${coverage.copay} out of pocket</>}
+                      {coverage.priorAuthRequired === 'Y' && <> · <span className="warn">prior auth started</span></>}
+                    </p>
+                  )}
                 </div>
               )}
               {committed && (

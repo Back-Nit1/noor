@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "purpose": "Local-only research assets for Noor development. Files downloaded into .datasets/ are git-ignored and must not be uploaded, served, or added to a model/product without an independent license and DUA review.",
+  "datasets": [
+    {
+      "id": "ut-endomri",
+      "name": "UTHealth Endometriosis MRI Dataset",
+      "modality": "Pelvic MRI: T1, T1FS, T2, T2FS; NIfTI masks",
+      "localPath": ".datasets/ut-endomri/UT-EndoMRI.zip",
+      "downloadUrl": "https://zenodo.org/records/13749613/files/UT-EndoMRI.zip?download=1",
+      "expectedSha256": null,
+      "source": "https://zenodo.org/records/13749613",
+      "access": "Public download",
+      "commercialUse": "Not permitted by the dataset terms: free exclusively for non-commercial scientific research.",
+      "notes": "133 endometriosis MRI cases across two institutions. Labels are uterus, ovaries, endometriomas, cysts, and cul-de-sac—not DIE lesion labels. Do not use to make a DIE-detection claim."
+    },
+    {
+      "id": "umd",
+      "name": "Uterine Myoma MRI Dataset",
+      "modality": "Sagittal T2 pelvic MRI; DICOM, NIfTI, and masks",
+      "localPath": ".datasets/umd/UMD.zip",
+      "downloadUrl": "https://figshare.com/ndownloader/files/44111183",
+      "expectedSha256": null,
+      "source": "https://figshare.com/articles/dataset/UMD_zip/23541312/2",
+      "access": "Public download",
+      "commercialUse": "CC BY 4.0; attribution required. Review any code/checkpoint licenses separately.",
+      "notes": "300 real pelvic MRI cases. Fibroid anatomy only; use for pelvic MRI UI, segmentation, and differential workflows, never to infer endometriosis."
+    },
+    {
+      "id": "ki-endolist",
+      "name": "KI EndoLIST",
+      "modality": "Longitudinal self-reported endometriosis symptoms",
+      "localPath": ".datasets/ki-endolist/",
+      "source": "https://www.physionet.org/content/ki-endolist/1.0.0/",
+      "access": "Restricted: project-specific DUA required",
+      "commercialUse": "Not cleared. Follow the PhysioNet DUA exactly.",
+      "notes": "Do not automate download. After approval, place downloaded files under the stated local path; do not display raw participant timelines unless explicitly permitted."
+    },
+    {
+      "id": "glenda",
+      "name": "GLENDA v1.5",
+      "modality": "Annotated gynecologic laparoscopy frames",
+      "localPath": ".datasets/glenda/",
+      "source": "https://ftp.itec.aau.at/datasets/GLENDA/",
+      "access": "Data agreement required",
+      "commercialUse": "Scientific research only; contact the video originator for any other purpose.",
+      "notes": "Surgical video is not MRI/ultrasound. Keep it as a separate confirmation/research modality."
+    }
+  ]
+}

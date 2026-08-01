@@ -28,3 +28,10 @@ pnpm-debug.log*
 coverage/
 *.tsbuildinfo
 next-env.d.ts
+
+# Local research datasets — never commit participant-level imaging or health data.
+# The acquisition manifest and fetch script are tracked; downloaded files are local only.
+.datasets/
+
+# Local research notes; keep out of the shared repository.
+docs/DATASET_CATALOG.md
