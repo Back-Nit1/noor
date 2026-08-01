@@ -81,14 +81,23 @@ for target in "${protected_targets[@]}"; do
   if printf '%s' "$scan_cmd" | grep -Eq ">>?[[:space:]]*[^|;&]*${target}"; then
     deny "This command redirects shell output into a protected file matching '${target}'. Secrets and guardrail config are edited by humans only."
   fi
-  if printf '%s' "$scan_cmd" | grep -Eq "(sed[[:space:]]+-i|tee|truncate|dd|cp|mv|install)[^|;&]*${target}"; then
-    deny "This command writes to or overwrites a protected file matching '${target}'. Secrets and guardrail config are edited by humans only."
+  if printf '%s' "$scan_cmd" | grep -Eq "(sed[[:space:]]+-i|tee|truncate|dd|cp|mv|install|rm|unlink|shred|chmod|chown|ln)[^|;&]*${target}"; then
+    deny "This command writes to, deletes, or changes permissions on a protected file matching '${target}'. Secrets and guardrail config are managed by humans only — and the guardrails may not disarm themselves."
   fi
   # reading secrets into the transcript is itself the leak
-  if printf '%s' "$scan_cmd" | grep -Eq "(cat|less|more|head|tail|bat|xxd|strings|od|grep|rg|awk|sed|open|code)[^|;&]*${target}"; then
+  if printf '%s' "$scan_cmd" | grep -Eq "(cat|less|more|head|tail|bat|xxd|strings|od|grep|rg|awk|sed|open|code|base64|gzip|zip|tar|cksum|md5|shasum|sort|uniq|cut|tr|wc|nl|rev|split|xargs|source|\\.)[^|;&]*${target}"; then
     deny "This command reads a protected file matching '${target}'. Anything read enters the conversation transcript — that IS the leak. Read .env.example instead to learn variable names."
   fi
 done
+
+# ---------- 2b. dumping secrets out of the environment ----------
+# Files are not the only leak path: the process env holds the same keys.
+if printf '%s' "$cmd" | grep -Eq '(^|[|;&[:space:]])(printenv|env)([[:space:]]*$|[[:space:]]*\|)'; then
+  deny "Dumping the environment would print live API keys into the transcript. If you need to know which variables exist, read .env.example."
+fi
+if printf '%s' "$cmd" | grep -Eqi '\$\{?[A-Z_]*(KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|DSN|MEDPLUM|DEEPGRAM|ANTHROPIC|STEDI|MOSS)[A-Z_]*\}?'; then
+  deny "This command interpolates a secret-bearing environment variable, which would print its value into the transcript. Reference it in code as process.env.<NAME> instead of echoing it."
+fi
 
 # ---------- 3. pipe remote content into a shell ----------
 if printf '%s' "$cmd" | grep -Eq '(curl|wget|fetch)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(bash|zsh|ksh|sh)([[:space:]]|$)'; then
