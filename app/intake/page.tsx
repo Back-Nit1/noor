@@ -6,6 +6,8 @@ import {
   type DemoPatient, type Finding, type ClusterMatch,
 } from '@/lib/clusters';
 import LiveVoice from './LiveVoice';
+import ScanViewer from './ScanViewer';
+import type { ImagingResult } from '@/lib/imaging';
 
 type Turn = { role: 'patient' | 'thaakat'; text: string };
 
@@ -19,6 +21,7 @@ export default function Intake() {
   const [match, setMatch] = useState<ClusterMatch | null>(null);
   const [coverage, setCoverage] = useState<any | null>(null);
   const [committed, setCommitted] = useState<any | null>(null);
+  const [scan, setScan] = useState<ImagingResult | null>(null);
   const [phase, setPhase] = useState<'idle' | 'connecting' | 'interview' | 'reading' | 'assembled'>('idle');
   // ms = the Moss query itself (the number we claim on stage); totalMs also includes the
   // Next-server -> Moss hop. Kept separate so the HUD never quotes an unreproducible figure.
@@ -29,13 +32,13 @@ export default function Intake() {
 
   function selectPatient(p: DemoPatient) {
     setPatient(p);
-    setRecord([]); setTurns([]); setMatch(null); setCoverage(null); setCommitted(null);
+    setRecord([]); setTurns([]); setMatch(null); setCoverage(null); setCommitted(null); setScan(null);
     setRetrieval(null); setPhase('idle');
   }
 
   async function simulate() {
     setRunning(true);
-    setRecord([]); setTurns([]); setMatch(null); setCoverage(null); setCommitted(null);
+    setRecord([]); setTurns([]); setMatch(null); setCoverage(null); setCommitted(null); setScan(null);
     const rec: Finding[] = [];
     const push = (f: Finding) => { rec.push(f); setRecord([...rec]); };
 
@@ -79,6 +82,7 @@ export default function Intake() {
       }).then((x) => x.json()).catch(() => null);
       await wait(500);
       if (img?.findings?.length) {
+        setScan(img as ImagingResult); // the regions land on screen as Thaakat narrates them
         for (const f of img.findings) say('thaakat', f.narration);
         push({
           id: 'radiomics', label: patient.imaging.label,
@@ -144,12 +148,13 @@ export default function Intake() {
             disabled={running}
             patientId={patient.id}
             onSeed={(seeded) => {
-              setRecord(seeded); setTurns([]); setMatch(null); setCoverage(null); setCommitted(null);
+              setRecord(seeded); setTurns([]); setMatch(null); setCoverage(null); setCommitted(null); setScan(null);
               setPhase('connecting');
             }}
             handlers={{
               onTurn: (role, text) => say(role, text),
               onFinding: (f) => setRecord((r) => (r.some((x) => x.id === f.id) ? r : [...r, f])),
+              onImaging: (i) => setScan(i as ImagingResult), // live voice gets the same overlay
               onCluster: (m) => setMatch(m),
               onCoverage: (c) => setCoverage(c),
               onCommit: (c) => setCommitted(c),
@@ -207,6 +212,9 @@ export default function Intake() {
               ))}
             </div>
           </div>
+
+          {/* the re-read, with the flagged regions drawn on the study */}
+          {scan && <ScanViewer result={scan} />}
 
           {match && (
             <div className="card" style={{ borderColor: 'var(--accent-2)' }}>
