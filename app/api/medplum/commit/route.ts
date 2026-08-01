@@ -12,6 +12,9 @@ export async function POST(req: NextRequest) {
       imagingFindings: body.imagingFindings,
       referral: body.referral,
       priorAuthRequired: body.priorAuthRequired,
+      // the assembled pattern -> DetectedIssue. Dropping this silently skipped the
+      // single resource the whole record-assembly story rests on.
+      cluster: body.cluster,
       patientName: body.patientName,
       patientId: body.patientId,
     });
